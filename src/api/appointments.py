@@ -151,11 +151,14 @@ async def create_appointment(request: Request, image: Optional[UploadFile] = Fil
     except ValueError as e:
         # Unified response: return pipeline partial and needs_clarification for any input
         pipeline = {"ocr": ocr_info, "entities": {"entities": entities, "entities_confidence": entities_confidence}, "normalization": {}}
-        return JSONResponse(status_code=400, content={
+        # include legacy `detail` field for older clients/tests that expect it
+        content = {
             "pipeline": pipeline,
             "status": "needs_clarification",
             "message": str(e),
-        })
+            "detail": str(e),
+        }
+        return JSONResponse(status_code=400, content=content)
 
     # Normalization
     normalized = normalize_entities(entities, ref_date=ref_dt)
@@ -181,5 +184,14 @@ async def create_appointment(request: Request, image: Optional[UploadFile] = Fil
             raise HTTPException(status_code=400, detail="Unable to extract appointment details")
         return JSONResponse(status_code=400, content={"status": "error", "message": "Unable to extract appointment details"})
 
-    # Unified response for all input types: return pipeline + appointment + status
-    return JSONResponse(status_code=200, content={"pipeline": pipeline, "appointment": appointment, "status": "ok"})
+    # For backwards compatibility include an appointment_id for JSON/text inputs
+    try:
+        json_text_provided = bool(is_json and json_has_text)
+    except Exception:
+        json_text_provided = False
+
+    response_content = {"pipeline": pipeline, "appointment": appointment, "status": "ok"}
+    if json_text_provided:
+        response_content["appointment_id"] = str(uuid4())
+
+    return JSONResponse(status_code=200, content=response_content)
