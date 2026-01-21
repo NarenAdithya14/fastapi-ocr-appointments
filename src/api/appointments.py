@@ -16,6 +16,22 @@ import base64
 
 router = APIRouter()
 
+# For compatibility, expose a clarify endpoint on the same /appointments router
+try:
+    from src.api.clarify import clarify_appointment as _clarify_handler
+
+    @router.post("/clarify", status_code=200)
+    async def clarify_proxy(payload: Dict[str, Any]):
+        """Proxy to the lightweight clarify handler in `src.api.clarify`.
+
+        This ensures `/appointments/clarify` is reachable whether the clarify
+        router is mounted separately or not (helps tests/consumers).
+        """
+        return await _clarify_handler(payload)
+except Exception:
+    # If import fails, skip creating the proxy; the separate router may be used instead
+    pass
+
 
 @router.post("", status_code=200)
 async def create_appointment(request: Request, image: Optional[UploadFile] = File(None)):
@@ -133,10 +149,7 @@ async def create_appointment(request: Request, image: Optional[UploadFile] = Fil
     try:
         handle_ambiguity(entities)
     except ValueError as e:
-        # For JSON text input (tests) return legacy HTTPException with detail string
-        if payload_text and is_json:
-            raise HTTPException(status_code=400, detail=str(e))
-        # For image/base64 return pipeline partial and needs_clarification per assignment
+        # Unified response: return pipeline partial and needs_clarification for any input
         pipeline = {"ocr": ocr_info, "entities": {"entities": entities, "entities_confidence": entities_confidence}, "normalization": {}}
         return JSONResponse(status_code=400, content={
             "pipeline": pipeline,
@@ -168,19 +181,5 @@ async def create_appointment(request: Request, image: Optional[UploadFile] = Fil
             raise HTTPException(status_code=400, detail="Unable to extract appointment details")
         return JSONResponse(status_code=400, content={"status": "error", "message": "Unable to extract appointment details"})
 
-    # If original input was JSON text, return legacy simple response expected by tests
-    if payload_text and is_json:
-        pipeline_runner = AppointmentPipeline()
-        # keep compatibility with previous tests that used pipeline.run
-        # pipeline.run expects plain text and returns a dict with status & appointment
-        try:
-            result = pipeline_runner.run(payload_text)
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=str(e))
-        appointment_id = str(uuid4())
-        return {"appointment_id": appointment_id, "appointment": result.get("appointment")}
-
-    # Otherwise (image/base64) return full pipeline + appointment
+    # Unified response for all input types: return pipeline + appointment + status
     return JSONResponse(status_code=200, content={"pipeline": pipeline, "appointment": appointment, "status": "ok"})
