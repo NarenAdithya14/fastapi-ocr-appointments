@@ -116,7 +116,12 @@ def resolve_relative_date(phrase: str, ref_date: Optional[date] = None) -> Optio
     If ref_date is None, uses today's date in Asia/Kolkata.
     """
     if ref_date is None:
-        now = datetime.now(ZoneInfo("Asia/Kolkata"))
+        try:
+            tz = ZoneInfo("Asia/Kolkata")
+            now = datetime.now(tz)
+        except Exception:
+            # tzdata may not be installed in some environments (Windows CI); fall back to naive local time
+            now = datetime.now()
         ref_date = now.date()
 
     phrase = (phrase or "").strip().lower()

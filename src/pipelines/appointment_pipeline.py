@@ -32,6 +32,7 @@ class AppointmentPipeline:
         # Build appointment
         appointment = {
             "name": entities.get("name"),
+            "department": entities.get("department"),
             "date": normalized.get("date"),
             "time": normalized.get("time"),
             "tz": normalized.get("tz"),

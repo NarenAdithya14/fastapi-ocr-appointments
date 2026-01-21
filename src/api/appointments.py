@@ -111,7 +111,11 @@ async def create_appointment(request: Request, image: Optional[UploadFile] = Fil
     cleaned = normalize_ocr_noise(source_text)
 
     # reference date for relative parsing (Asia/Kolkata)
-    ref_dt = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+    try:
+        ref_dt = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+    except Exception:
+        # If tz data not available, fall back to naive local date
+        ref_dt = datetime.now().date()
 
     # Extract entities
     entities = extract_entities(cleaned)
