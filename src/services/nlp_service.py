@@ -211,3 +211,64 @@ def handle_ambiguity(entities: Dict[str, Any]) -> None:
     department = entities.get("department")
     if department in ["doctor", "hospital"]:
         raise ValueError("Ambiguous department provided.")
+
+
+def score_entities(entities: Dict[str, Any], ocr_confidence: float = 1.0) -> float:
+    """Compute a more granular confidence score for extracted entities.
+
+    We weight date and time higher than department. Relative date phrases get slightly
+    lower confidence than explicit month/day values.
+    """
+    date_phrase = entities.get("date_phrase")
+    time_phrase = entities.get("time_phrase")
+    department = entities.get("department")
+
+    # Date scoring
+    date_score = 0.0
+    if date_phrase:
+        if re.search(r"\b(next|this|tomorrow|today)\b", str(date_phrase), re.IGNORECASE):
+            date_score = 0.85
+        else:
+            date_score = 0.95
+
+    # Time scoring
+    time_score = 0.0
+    if time_phrase:
+        if re.search(r"[AaPp][Mm]", str(time_phrase)):
+            time_score = 0.95
+        else:
+            time_score = 0.80
+
+    # Department scoring
+    dept_score = 0.0
+    if department:
+        dept_score = 0.90
+
+    # Weighted average: date 45%, time 45%, dept 10%
+    entities_conf = (0.45 * date_score) + (0.45 * time_score) + (0.10 * dept_score)
+
+    # Blend with OCR confidence (simple multiplicative blending)
+    final = round(max(0.0, min(1.0, entities_conf * ocr_confidence)), 2)
+    return final
+
+
+def score_normalization(entities: Dict[str, Any], normalized: Dict[str, Any]) -> float:
+    """Score normalization confidence based on what was successfully normalized.
+
+    If both date and time normalized to non-null values, return high confidence.
+    Otherwise lower confidence.
+    """
+    date_ok = bool(normalized.get("date"))
+    time_ok = bool(normalized.get("time"))
+
+    if date_ok and time_ok:
+        # If both normalized and date was explicit, bump confidence
+        date_phrase = entities.get("date_phrase") or ""
+        if re.search(r"\b(next|this|tomorrow|today)\b", date_phrase, re.IGNORECASE):
+            return 0.85
+        return 0.95
+
+    if date_ok or time_ok:
+        return 0.60
+
+    return 0.0

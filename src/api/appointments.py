@@ -119,8 +119,15 @@ async def create_appointment(request: Request, image: Optional[UploadFile] = Fil
 
     # Extract entities
     entities = extract_entities(cleaned)
-    ent_conf_vals = [0.9 if entities.get(k) else 0.0 for k in ("date_phrase", "time_phrase", "department")]
-    entities_confidence = round(sum(ent_conf_vals) / max(len(ent_conf_vals), 1), 2)
+    # Compute more granular confidences using heuristics in nlp_service
+    try:
+        from src.services.nlp_service import score_entities, score_normalization
+
+        entities_confidence = score_entities(entities, ocr_info.get("confidence", 1.0))
+    except Exception:
+        # fallback to previous heuristic
+        ent_conf_vals = [0.9 if entities.get(k) else 0.0 for k in ("date_phrase", "time_phrase", "department")]
+        entities_confidence = round(sum(ent_conf_vals) / max(len(ent_conf_vals), 1), 2)
 
     # Guardrails
     try:
@@ -139,7 +146,10 @@ async def create_appointment(request: Request, image: Optional[UploadFile] = Fil
 
     # Normalization
     normalized = normalize_entities(entities, ref_date=ref_dt)
-    norm_conf = 0.9 if normalized.get("date") and normalized.get("time") else 0.0
+    try:
+        norm_conf = score_normalization(entities, normalized)
+    except Exception:
+        norm_conf = 0.9 if normalized.get("date") and normalized.get("time") else 0.0
 
     pipeline = {
         "ocr": ocr_info,

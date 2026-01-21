@@ -146,6 +146,43 @@ Next improvements (ideas)
 - Generate a small animated GIF showing a successful and ambiguous request for the README banner.
 - Add a Docker image and publish to GitHub Packages for quick demo deployment.
 
+Examples: relative dates and department normalization
+
+- Input (typed):
+
+```json
+{ "text": "Book dentist next Friday at 3pm" }
+```
+
+- Example pipeline output (after OCR & NLP):
+
+```json
+{
+   "ocr": { "raw_text": "Book dentist next Friday at 3pm", "confidence": 0.9 },
+   "entities": {
+      "entities": {
+         "date_phrase": "next friday",
+         "time_phrase": "3pm",
+         "department": "Dentistry"
+      },
+      "entities_confidence": 0.82
+   },
+   "normalization": {
+      "normalized": { "date": "2025-09-26", "time": "15:00", "tz": "Asia/Kolkata" },
+      "normalization_confidence": 0.85
+   },
+   "appointment": { "department": "Dentistry", "date": "2025-09-26", "time": "15:00", "tz": "Asia/Kolkata" },
+   "status": "ok"
+}
+```
+
+Note: the service normalizes common department tokens (e.g. "dentist", "dental") to canonical names such as "Dentistry".
+
+Demo GIF and GitHub Pages
+
+I've added a tiny placeholder demo in `docs/index.html` (served via GitHub Pages if enabled). Replace the demo image `docs/demo.gif` with a short recording to show your workflow. The Pages URL (once enabled) will be:
+
+https://narenadithya14.github.io/fastapi-ocr-appointments/
 License
 - This project is licensed under the MIT License (see `LICENSE`).
 
