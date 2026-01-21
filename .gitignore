@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+.DS_Store
+.vscode/
+.idea/
+*.sqlite3
+*.log
+__pycache__/
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Tesseract cache (if any)
+*.traineddata

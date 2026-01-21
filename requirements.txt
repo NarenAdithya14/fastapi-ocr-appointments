@@ -1,0 +1,12 @@
+FastAPI
+uvicorn
+pytesseract
+easyocr
+pydantic
+python-multipart
+httpx
+pytest
+pytest-asyncio
+mypy
+black
+flake8
