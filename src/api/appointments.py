@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException, File, UploadFile, Request
 from typing import Optional, Dict, Any
 from uuid import uuid4
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from fastapi.responses import JSONResponse
 from src.pipelines.appointment_pipeline import AppointmentPipeline
 from src.services.nlp_service import (
@@ -108,6 +110,9 @@ async def create_appointment(request: Request, image: Optional[UploadFile] = Fil
     # Normalize OCR noise
     cleaned = normalize_ocr_noise(source_text)
 
+    # reference date for relative parsing (Asia/Kolkata)
+    ref_dt = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+
     # Extract entities
     entities = extract_entities(cleaned)
     ent_conf_vals = [0.9 if entities.get(k) else 0.0 for k in ("date_phrase", "time_phrase", "department")]
@@ -129,7 +134,7 @@ async def create_appointment(request: Request, image: Optional[UploadFile] = Fil
         })
 
     # Normalization
-    normalized = normalize_entities(entities)
+    normalized = normalize_entities(entities, ref_date=ref_dt)
     norm_conf = 0.9 if normalized.get("date") and normalized.get("time") else 0.0
 
     pipeline = {
@@ -140,9 +145,9 @@ async def create_appointment(request: Request, image: Optional[UploadFile] = Fil
 
     # Build final appointment
     if normalized.get("date") and normalized.get("time"):
+        # department from extract_entities is already canonicalized when possible
         department = entities.get("department")
-        dept = department.capitalize() if department else None
-        appointment = {"department": dept, "date": normalized.get("date"), "time": normalized.get("time"), "tz": normalized.get("tz")}
+        appointment = {"department": department, "date": normalized.get("date"), "time": normalized.get("time"), "tz": normalized.get("tz")}
     else:
         # Shouldn't happen because guardrails would have caught earlier
         if payload_text and is_json:

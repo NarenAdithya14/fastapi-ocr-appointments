@@ -9,7 +9,7 @@ class AppointmentPipeline:
     run(text: str) -> Dict[str, Any]
     """
 
-    def run(self, text: str) -> Dict[str, Any]:
+    def run(self, text: str, ref_date=None) -> Dict[str, Any]:
         if not isinstance(text, str) or not text.strip():
             raise HTTPException(status_code=422, detail="Text must not be empty.")
 
@@ -26,8 +26,8 @@ class AppointmentPipeline:
             # Tests expect a generic failure message for inability to extract details
             raise HTTPException(status_code=400, detail="Unable to extract appointment details")
 
-        # Step 3: normalization
-        normalized = normalize_entities(entities)
+    # Step 3: normalization (pass ref_date for deterministic tests when provided)
+        normalized = normalize_entities(entities, ref_date=ref_date)
 
         # Build appointment
         appointment = {
