@@ -51,6 +51,7 @@ This repository implements a FastAPI backend that accepts typed text or images (
 Quick links
 - Docs (local): http://127.0.0.1:8000/docs
 - Postman collection: `docs/postman_collection.json`
+ - Changelog: `CHANGELOG.md`
 
 Why this repo
 - Clear, testable pipeline: OCR → entity extraction → normalization → guardrails
@@ -133,9 +134,8 @@ Run the test-suite locally:
 .\.venv\Scripts\python -m pytest -q
 ```
 
-Demo assets & publishing
+Publishing helpers
 - `scripts/demo_run.ps1` — runs the server and two sample requests and saves outputs.
-- `scripts/record_demo.ps1` — ffmpeg-based recording helper (Windows).
 - `scripts/publish_to_github.ps1` — helper to push to GitHub (can attempt to create repo via `gh` if installed).
 
 Contributing & support
@@ -143,7 +143,6 @@ Contributing & support
 
 Next improvements (ideas)
 - Add small demo images and automated integration tests for OCR flows.
-- Generate a small animated GIF showing a successful and ambiguous request for the README banner.
 - Add a Docker image and publish to GitHub Packages for quick demo deployment.
 
 Examples: relative dates and department normalization
@@ -178,11 +177,9 @@ Examples: relative dates and department normalization
 
 Note: the service normalizes common department tokens (e.g. "dentist", "dental") to canonical names such as "Dentistry".
 
-Demo GIF and GitHub Pages
+GitHub Pages
 
-I've added a tiny placeholder demo in `docs/index.html` (served via GitHub Pages if enabled). Replace the demo image `docs/demo.gif` with a short recording to show your workflow. The Pages URL (once enabled) will be:
-
-https://narenadithya14.github.io/fastapi-ocr-appointments/
+There is a small placeholder in `docs/index.html` intended for GitHub Pages if you choose to enable it.
 License
 - This project is licensed under the MIT License (see `LICENSE`).
 
